@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>黑白棋-基础</title>
+  <style>
+    #box {
+      width: 350px;
+    }
+
+    .cell {
+      width: 100px;
+      height: 100px;
+      background: green;
+      display: inline-block;
+      vertical-align: middle;
+      font-size: 50px;
+      text-align: center;
+      line-height: 100px;
+      margin: 0 10px 10px 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="box"></div>
+  <script>
+    const box = document.querySelector('#box')
+    class TicTacToe {
+      constructor({
+        el,
+        pattern = [
+          [0, 0, 0],
+          [0, 0, 0],
+          [0, 0, 0]
+        ]
+      }) {
+        this.el = el
+        this.pattern = pattern
+        this.step = 1
+        this.openings = new Map()
+        this.openings.set([
+          [0, 0, 0],
+          [0, 0, 0],
+          [0, 0, 0]
+        ].toString()+'1', {
+          point: [1, 1],
+          result: 0
+        })
+        this.openings.set([
+          [0, 0, 0],
+          [0, 1, 0],
+          [0, 0, 0]
+        ].toString()+'2', {
+          point: [0, 0],
+          result: 0
+        })
+        this.dataMap = {
+          0: '',
+          1: '⭕️',
+          2: '❌'
+        }
+
+      }
+      _init() {
+        if (!this.el) return
+        this.show()
+      }
+      show() {
+        this.el.innerHTML = ''
+        for (let i = 0; i < 3; i++) {
+          for (let j = 0; j < 3; j++) {
+            const cell = document.createElement('div')
+            cell.classList.add('cell')
+            cell.innerText = this.dataMap[this.pattern[i][j]]
+            cell.addEventListener('click', () => this.move(j, i))
+            this.el.appendChild(cell)
+          }
+        }
+      }
+      computerMove() {
+        const choice = this.bestChoice(this.pattern, this.step)
+        if (choice.point) {
+          this.pattern[choice.point[1]][choice.point[0]] = this.step
+
+          if (this.check(this.pattern, this.step, choice.point[0], choice.point[1])) {
+            alert(this.dataMap[this.step] + 'win')
+            this.reset()
+          }
+          
+          this.step = 3 - this.step
+          this.show()
+        }
+      }
+      move(x, y) {
+        if (this.pattern[y][x]) return
+
+        this.pattern[y][x] = this.step
+        if (this.check(this.pattern, this.step, x, y)) {
+          alert(this.dataMap[this.step] + 'win')
+          this.reset()
+        }
+
+        this.step = 3 - this.step
+        this.show()
+        if (this.willWin(this.pattern, this.step)) {
+          console.log(this.dataMap[this.step] + 'will win')
+        }
+        this.computerMove()
+      }
+      willWin(pattern, step) {
+        for (let i = 0; i < 3; i++) {
+          for (let j = 0; j < 3; j++) {
+            if (pattern[i][j])
+              continue
+            pattern[i][j] = step
+            if (this.check(pattern, step, j, i)) {
+              pattern[i][j] = 0
+              return [j, i]
+            }
+            pattern[i][j] = 0
+          }
+        }
+        return null
+      }
+      reset() {
+        this.pattern = [
+          [0, 0, 0],
+          [0, 0, 0],
+          [0, 0, 0]
+        ]
+        this.step = 1
+        this.show()
+      }
+      bestChoice(pattern, step) {
+        if(this.openings.has(pattern.toString()+step)){
+          return this.openings.get(pattern.toString()+step)
+        }
+        function clone(pattern) {
+          return JSON.parse(JSON.stringify(pattern))
+        }
+        let point = this.willWin(pattern, step)
+        if (point) {
+          return {
+            point: point,
+            result: 1
+          }
+        }
+        let result = -1
+        outer: for (let i = 0; i < 3; i++) {
+          for (let j = 0; j < 3; j++) {
+            if (pattern[i][j])
+              continue
+            let temp = clone(pattern)
+            temp[i][j] = step
+            let opp = this.bestChoice(temp, 3 - step)
+            if (-opp.result >= result) {
+              point = [j, i]
+              result = -opp.result
+            }
+            if (result === 1) {
+              break outer
+            }
+          }
+        }
+        return {
+          point,
+          result: point ? result : 0
+        }
+      }
+      check(pattern, step, x, y) {
+        // 纵行比较
+        const longitudinallyWin = pattern.every(item => item[x] === step)
+        if (longitudinallyWin) return true
+        // 橫行比较
+        const acrossWin = pattern[y].every(item => item === step)
+        if (acrossWin) return true
+        // 对角线比较
+        let diagonalWin = true
+        if (x === y) {
+          for (let j = 0; j < 3; j++) {
+            if (pattern[j][j] !== step) {
+              diagonalWin = false
+              break
+            }
+          }
+        } else if (x + y === 2) {
+          for (let j = 0; j < 3; j++) {
+            if (pattern[j][2 - j] !== step) {
+              diagonalWin = false
+              break
+            }
+          }
+        } else {
+          return false
+        }
+        return diagonalWin
+      }
+    }
+    window.ticTacToe = new TicTacToe({
+      el: document.querySelector('#box')
+    })
+    ticTacToe._init()
+    console.log(ticTacToe)
+  </script>
+</body>
+
+</html>
